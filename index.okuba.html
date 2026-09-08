@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>部品台帳</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#303E4C">
+  <meta name="apple-mobile-web-app-title" content="部品台帳">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EDEAE2;
+    --paper-alt: #E1DCCE;
+    --ink: #26241F;
+    --ink-soft: #605A4E;
+    --steel: #46586B;
+    --steel-deep: #303E4C;
+    --copper: #AD5A22;
+    --copper-deep: #8B4718;
+    --line: #C7BFAE;
+    --line-soft: #D9D2C2;
+    --danger: #A13B2C;
+    --ok-bg: #EFE6D2;
+    --radius: 14px;
+    --shadow-soft: 0 2px 10px rgba(38,36,33,0.08);
+    --font-ui: 'Zen Kaku Gothic New', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family: var(--font-ui);
+    background: var(--paper);
+    color: var(--ink);
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-attachment: fixed;
+  }
+  #app{
+    max-width: 1180px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header{
+    padding: 28px 28px 18px;
+    border-bottom: 2px solid var(--ink);
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: var(--paper);
+  }
+  .brand{
+    display:flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .brand .kanji{
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+  }
+  .brand .sub{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.08em;
+  }
+  .header-actions{
+    display:flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .count-badge{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--steel-deep);
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    background: var(--paper-alt);
+  }
+  button{
+    font-family: var(--font-ui);
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary{
+    background: var(--copper);
+    color: #FBF6EC;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    transition: background 0.15s ease;
+  }
+  .btn-primary:hover{ background: var(--copper-deep); }
+  .btn-ghost{
+    background: transparent;
+    color: var(--steel-deep);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    font-weight: 500;
+  }
+  .btn-ghost:hover{ border-color: var(--steel-deep); }
+  .btn-ghost:disabled{
+    opacity: 0.45;
+    cursor: not-allowed;
+    color: var(--ink-soft);
+  }
+  .btn-ghost:disabled:hover{ border-color: var(--line); }
+  .btn-danger{
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    font-weight: 500;
+  }
+  .btn-danger:hover{ background: var(--danger); color: #FBF6EC; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline: 2px solid var(--copper);
+    outline-offset: 2px;
+  }
+  .inline-link-btn{
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--steel-deep);
+    font-size: 11px;
+    padding: 3px 9px;
+    margin-left: 8px;
+  }
+  .inline-link-btn:hover{ border-color: var(--steel-deep); background: var(--ok-bg); }
+  .shared-note{
+    font-size: 11px;
+    color: var(--ink-soft);
+    padding: 8px 28px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  main{
+    flex: 1;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 0;
+  }
+  .sidebar{
+    border-right: 2px solid var(--ink);
+    display:flex;
+    flex-direction: column;
+    background: var(--paper);
+  }
+  .search-hero{
+    padding: 20px 16px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper-alt);
+  }
+  .search-hero-title{
+    font-size: 17px;
+    font-weight: 900;
+    margin-bottom: 14px;
+  }
+  .search-hero .field{ margin-bottom: 12px; }
+  .search-hero .field:last-child{ margin-bottom: 0; }
+  .search-hero label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .search-hero select,
+  .search-hero input[type=text]{
+    width: 100%;
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #FBF8F1;
+    color: var(--ink);
+  }
+  .search-hero input::placeholder{ color: #A79E8C; }
+  .part-list{
+    overflow-y: auto;
+    flex: 1;
+  }
+  .part-row{
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    background: transparent;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .part-row-text{
+    display:flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .row-manual-btn{
+    flex-shrink: 0;
+    background: var(--paper-alt);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 15px;
+    padding: 5px 8px;
+    line-height: 1;
+  }
+  .row-manual-btn:hover{ background: var(--ok-bg); }
+  .part-row.active .row-manual-btn{ background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+  .list-legend{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--paper-alt);
+  }
+  .list-legend .legend-sample{
+    display:inline-flex;
+    cursor: default;
+  }
+  .part-row:hover{ background: var(--paper-alt); }
+  .part-row.active{
+    background: var(--steel-deep);
+  }
+  .part-row.active .p-number{ color: #E9D9C4; }
+  .part-row.active .p-name{ color: #EDEAE2; }
+  .p-number{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--copper-deep);
+    font-weight: 600;
+  }
+  .p-name{
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .empty-list{
+    padding: 24px 16px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .content{
+    padding: 28px;
+    overflow-y: auto;
+  }
+  .placeholder{
+    height: 100%;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-soft);
+    gap: 14px;
+    text-align:center;
+  }
+  .placeholder .mark{
+    font-family: var(--font-mono);
+    font-size: 44px;
+    color: var(--line);
+  }
+  /* ---- Detail card ---- */
+  .card{
+    background: #FBF8F1;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+  }
+  .card-top{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--line);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .card-top .p-number-lg{
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--copper-deep);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .product-breadcrumb{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .card-top h2{
+    margin: 4px 0 0;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .price-tag{
+    font-family: var(--font-mono);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--steel-deep);
+    background: var(--ok-bg);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    white-space: nowrap;
+  }
+  .price-tag span{ font-size: 13px; font-weight: 500; margin-left: 4px; color: var(--ink-soft);}
+  .card-actions{ display:flex; gap:8px; }
+  .card-body{
+    padding: 24px;
+    display:grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 28px;
+  }
+  .section-label{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    display:block;
+  }
+  .photo-box{
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-alt);
+    aspect-ratio: 4/3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow: hidden;
+  }
+  .photo-box img{ width:100%; height:100%; object-fit: cover; display:block; }
+  .photo-box .no-photo{
+    color: var(--ink-soft);
+    font-size: 13px;
+    text-align:center;
+  }
+  .photo-gallery{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .photo-thumb{
+    width: 96px;
+    height: 96px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .form-photo-thumb{
+    position: relative;
+    width: 84px;
+    height: 84px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .form-photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .form-photo-thumb .rm-photo{
+    position:absolute;
+    top: 2px; right: 2px;
+    width: 20px; height: 20px;
+    line-height: 18px;
+    text-align:center;
+    background: rgba(38,36,33,0.75);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 13px;
+    padding: 0;
+    border: none;
+  }
+  .photo-grid-form{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  table.comp-table{
+    width:100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.comp-table th{
+    text-align:left;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+    padding: 6px 8px;
+  }
+  table.comp-table td{
+    padding: 8px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  table.comp-table td.qty{
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    color: var(--steel-deep);
+  }
+  .no-comp{ font-size: 13px; color: var(--ink-soft); }
+  .pdf-chip{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-alt);
+    font-size: 13px;
+    color: var(--steel-deep);
+  }
+  .pdf-chip button{
+    background: var(--steel-deep);
+    color: #EDEAE2;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    font-weight: 500;
+  }
+  .pdf-chip button:hover{ background: var(--copper); }
+  .no-pdf{ font-size: 13px; color: var(--ink-soft); margin-top: 12px; }
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(38,36,33,0.72);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 1000;
+    padding: 24px;
+  }
+  .modal-box{
+    background: #FBF8F1;
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 560px;
+    max-height: 85vh;
+    display:flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(38,36,33,0.28);
+  }
+  .modal-box.wide{ max-width: 760px; }
+  .modal-top{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
+  }
+  .modal-top h3{ margin:0; font-size:16px; }
+  .modal-body{
+    padding: 16px 20px;
+    overflow-y: auto;
+  }
+  .map-add-row{
+    display:grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .map-add-row input{
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #FFFDF8;
+    font-size: 13px;
+  }
+  .map-add-row input.mono{ font-family: var(--font-mono); }
+  .map-list{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .map-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    background: var(--paper-alt);
+  }
+  .map-row .code{
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--copper-deep);
+    font-weight: 600;
+    min-width: 80px;
+  }
+  .map-row .prod{ flex:1; font-size: 13px; }
+  .map-row button{
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+  }
+  .map-row button:hover{ background: var(--danger); color: #FBF6EC; }
+  .map-row button.row-open-btn{
+    border-color: var(--steel-deep);
+    color: var(--steel-deep);
+  }
+  .map-row button.row-open-btn:hover{ background: var(--steel-deep); color: #EDEAE2; }
+  .map-empty{ font-size: 13px; color: var(--ink-soft); }
+  .ai-preview{
+    max-width: 220px;
+    border-radius: var(--radius);
+    display:block;
+    margin: 10px 0;
+    border: 1px solid var(--line);
+  }
+  .ai-result-row{
+    display:flex;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-alt);
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .ai-result-row img{
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .ai-result-main{ flex:1; }
+  .ai-result-top{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ai-result-title{ font-weight:700; font-size: 14px; }
+  .ai-result-code{ font-family: var(--font-mono); font-size: 12px; color: var(--copper-deep); }
+  .ai-confidence{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: var(--radius);
+    background: var(--ok-bg);
+    color: var(--steel-deep);
+  }
+  .ai-reason{ font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+  .ai-warning{
+    display:inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--danger);
+    background: #F6E7E1;
+    border: 1px solid var(--danger);
+    padding: 3px 9px;
+    border-radius: var(--radius);
+    margin-top: 6px;
+  }
+  .ai-no-match{
+    text-align:center;
+    padding: 32px 16px;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-alt);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .ai-no-match-sub{
+    font-size: 13px;
+    font-weight: 400;
+    margin-top: 6px;
+    color: var(--ink-soft);
+  }
+  .ai-open-btn{
+    margin-top: 8px;
+    background: var(--steel-deep);
+    color: #EDEAE2;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+  }
+  .ai-open-btn:hover{ background: var(--copper); }
+  .auto-fill-note{
+    font-size: 11px;
+    color: var(--steel-deep);
+    margin-top: 4px;
+  }
+  .notes-block{
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+  .confirm-bar{
+    grid-column: 1/-1;
+    background: #F6E7E1;
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  /* ---- Form ---- */
+  .form-wrap{ max-width: 720px; }
+  .form-wrap h2{ margin-top:0; }
+  .field{ margin-bottom: 18px; }
+  .field label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .field input[type=text], .field input[type=number], .field textarea{
+    width:100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #FBF8F1;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .field.mono input{ font-family: var(--font-mono); }
+  .field textarea{ resize: vertical; min-height: 70px; }
+  .two-col{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .comp-row{
+    display:grid;
+    grid-template-columns: 1fr 110px 34px;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .comp-row input{
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #FBF8F1;
+    font-size: 13px;
+  }
+  .comp-row .rm{
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--danger);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .add-row-btn{
+    font-size: 12px;
+    color: var(--steel-deep);
+    background: transparent;
+    border: 1px dashed var(--line);
+    padding: 7px 12px;
+    border-radius: var(--radius);
+    width: 100%;
+  }
+  .photo-input-box{
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align:center;
+    background: var(--paper-alt);
+  }
+  .photo-preview{
+    max-width: 220px;
+    border-radius: var(--radius);
+    display:block;
+    margin: 10px auto 0;
+  }
+  .pdf-input-box{
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    background: var(--paper-alt);
+  }
+  .pdf-current{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    background: #FBF8F1;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .pdf-current button{
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+  }
+  .pdf-current button:hover{ background: var(--danger); color: #FBF6EC; }
+  .form-actions{
+    display:flex;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .status-msg{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+    font-family: var(--font-mono);
+  }
+  .status-msg.err{ color: var(--danger); }
+  .back-link{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-size: 15px;
+    color: var(--steel-deep);
+    background: var(--paper-alt);
+    border: 1px solid var(--line);
+    padding: 10px 18px;
+    margin-bottom: 16px;
+    border-radius: var(--radius);
+    font-weight: 700;
+  }
+  .back-link:hover{ background: var(--ok-bg); border-color: var(--steel-deep); }
+  @media (max-width: 760px){
+    header{ padding: 18px 14px 14px; gap: 12px; }
+    .brand .kanji{ font-size: 26px; }
+    .brand .sub{ font-size: 10px; }
+    .header-actions{ gap: 6px; flex-wrap: wrap; }
+    .header-actions .count-badge,
+    .header-actions button{ white-space: nowrap; }
+    .count-badge{ font-size: 11px; padding: 6px 8px; }
+    .btn-ghost{ font-size: 12px; padding: 8px 10px; }
+    .btn-primary{ font-size: 13px; padding: 9px 14px; }
+    .shared-note{ padding: 8px 14px; }
+    .content{ padding: 18px 14px; }
+    main{ grid-template-columns: 1fr; }
+    /* 一覧はページ全体と一緒にスクロールさせる（枠内スクロールだと数件しか見えない） */
+    .sidebar{ border-right:none; border-bottom: 2px solid var(--ink); max-height: none; }
+    .part-list{ overflow-y: visible; flex: none; }
+    .card-body{ grid-template-columns: 1fr; }
+    #app.detail-active .sidebar{ display:none; }
+    #app:not(.detail-active) .content{ display:none; }
+    .back-link{ display:inline-block; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="kanji">部品台帳</div>
+      <div class="sub">OKUBA KOGYO CO., LTD. — PARTS LEDGER</div>
+    </div>
+    <div class="header-actions">
+      <span class="count-badge" id="countBadge">0 件登録</span>
+      <button class="btn-ghost" id="aiBtn">写真でAI判定</button>
+      <button class="btn-ghost" id="manualBrowseBtn">手順書を探す</button>
+      <button class="btn-ghost" id="adminBtn">管理者</button>
+      <button class="btn-primary" id="newBtn">＋ 新規登録</button>
+    </div>
+  </header>
+  <div class="shared-note">※ <strong>デモ版</strong>：「オクバ工業株式会社」および掲載中の品番・製品はすべて架空のものです。登録したデータはお使いのブラウザ内にだけ保存され、外部に送信されず、他の端末とも共有されません。<button class="inline-link-btn" id="resetDemoBtn">デモデータに戻す</button></div>
+  <main>
+    <div class="sidebar">
+      <div class="search-hero">
+        <div class="search-hero-title">部品を探す</div>
+        <div class="field">
+          <label>検索</label>
+          <input type="text" id="searchAll" placeholder="品番・品名・製品名で検索">
+        </div>
+        <div class="field">
+          <label>製品名で絞り込み</label>
+          <select id="productSelect"></select>
+        </div>
+      </div>
+      <div class="list-legend"><span class="row-manual-btn legend-sample">📘</span> ＝ 手順書があります（押すとすぐ確認できます）</div>
+      <div class="part-list" id="partList"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   保存レイヤー（ブラウザ内保存 / IndexedDB）
+   window.storage と同じ形にしてあるので、社内共有ファイル版に
+   差し替えるときは、このブロックだけを入れ替えれば済む。
+   ===================================================================== */
+const DB_NAME = 'parts-ledger';
+const DB_STORE = 'kv';
+let _dbPromise = null;
+let _idbOk = null;          // null = 未判定 / true = IndexedDB / false = メモリのみ
+const _mem = new Map();     // IndexedDB が使えない環境（プレビュー等）の退避先
+
+function openDb(){
+  if(_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    if(typeof indexedDB === 'undefined'){ reject(new Error('no indexedDB')); return; }
+    let req;
+    try{ req = indexedDB.open(DB_NAME, 1); }catch(e){ reject(e); return; }
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('indexedDB open failed'));
+    req.onblocked = () => reject(new Error('indexedDB blocked'));
+  });
+  return _dbPromise;
+}
+
+async function idbUsable(){
+  if(_idbOk !== null) return _idbOk;
+  try{ await openDb(); _idbOk = true; }
+  catch(e){ _idbOk = false; }
+  return _idbOk;
+}
+
+async function idbRun(mode, fn){
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, mode);
+    const req = fn(tx.objectStore(DB_STORE));
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+const appStorage = {
+  async get(key){
+    if(await idbUsable()){
+      const v = await idbRun('readonly', st => st.get(key));
+      return (v === undefined) ? null : { key, value: v };
+    }
+    return _mem.has(key) ? { key, value: _mem.get(key) } : null;
+  },
+  async set(key, value){
+    if(await idbUsable()) await idbRun('readwrite', st => st.put(value, key));
+    else _mem.set(key, value);
+    return { key, value };
+  },
+  async delete(key){
+    if(await idbUsable()) await idbRun('readwrite', st => st.delete(key));
+    else _mem.delete(key);
+    return { key, deleted: true };
+  },
+  async list(prefix){
+    const keys = (await idbUsable())
+      ? await idbRun('readonly', st => st.getAllKeys())
+      : Array.from(_mem.keys());
+    return { keys: prefix ? keys.filter(k => String(k).startsWith(prefix)) : keys };
+  },
+  async clearAll(){
+    if(await idbUsable()) await idbRun('readwrite', st => st.clear());
+    else _mem.clear();
+  },
+  async isPersistent(){ return await idbUsable(); }
+};
+
+const STORAGE_SHARED = true;
+let partsIndex = [];      // [{id, partNumber, name, price}]
+let filteredIndex = [];
+let productMap = {};      // { "L-15": "視野計", ... } 品番(正規化済み) -> 製品名
+let selectedId = null;
+let mode = 'empty';       // empty | detail | form
+let selectedProduct = null;  // null = すべて
+let editingPart = null;   // full record when editing, or {} for new
+let confirmDeleteId = null;
+let loadError = '';
+
+const appEl = document.getElementById('app');
+const listEl = document.getElementById('partList');
+const searchAllEl = document.getElementById('searchAll');
+const productSelectEl = document.getElementById('productSelect');
+const contentEl = document.getElementById('content');
+const countBadge = document.getElementById('countBadge');
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function yen(n){
+  const num = Number(n);
+  if(isNaN(num)) return '—';
+  return num.toLocaleString('ja-JP');
+}
+function uid(){
+  return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+}
+
+async function loadIndex(){
+  try{
+    const res = await appStorage.get('parts:index', STORAGE_SHARED);
+    partsIndex = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    partsIndex = [];
+  }
+  applyFilter();
+}
+
+function normalizeCode(s){
+  return (s || '').trim().toUpperCase();
+}
+
+async function loadProductMap(){
+  try{
+    const res = await appStorage.get('product-map', STORAGE_SHARED);
+    productMap = res && res.value ? JSON.parse(res.value) : {};
+  }catch(e){
+    productMap = {};
+  }
+}
+
+async function saveProductMap(){
+  await appStorage.set('product-map', JSON.stringify(productMap), STORAGE_SHARED);
+}
+
+function lookupProduct(code){
+  const key = normalizeCode(code);
+  return key && productMap[key] ? productMap[key] : null;
+}
+
+async function saveIndex(){
+  await appStorage.set('parts:index', JSON.stringify(partsIndex), STORAGE_SHARED);
+}
+
+async function loadPart(id){
+  const res = await appStorage.get('part:' + id, STORAGE_SHARED);
+  return res && res.value ? JSON.parse(res.value) : null;
+}
+
+async function loadPartPhotos(part){
+  const photos = [];
+  if(part.photoIds && part.photoIds.length){
+    for(const pid of part.photoIds){
+      try{
+        const res = await appStorage.get('part-photo:' + pid, STORAGE_SHARED);
+        if(res && res.value) photos.push({ id: pid, data: res.value, legacy: false });
+      }catch(e){ /* skip missing photo */ }
+    }
+  }else if(part.photo){
+    photos.push({ id: 'legacy', data: part.photo, legacy: true });
+  }
+  return photos;
+}
+
+function upsertIndexEntry(part){
+  const idx = partsIndex.findIndex(p => p.id === part.id);
+  const rec = { id: part.id, partNumber: part.partNumber, name: part.name, price: part.price, product: part.product || '', hasPhoto: !!(part.photoIds && part.photoIds.length) || !!part.photo, hasManualPdf: !!part.hasManualPdf };
+  if(idx >= 0) partsIndex[idx] = rec; else partsIndex.push(rec);
+}
+
+async function savePart(part){
+  await appStorage.set('part:' + part.id, JSON.stringify(part), STORAGE_SHARED);
+  upsertIndexEntry(part);
+  partsIndex.sort((a,b) => a.partNumber.localeCompare(b.partNumber, 'ja'));
+  await saveIndex();
+}
+
+async function deletePartById(id){
+  try{ await appStorage.delete('part:' + id, STORAGE_SHARED); }catch(e){}
+  try{ await deleteChunkedFile('part-pdf', id); }catch(e){}
+  try{ await deleteChunkedFile('part-calib', id); }catch(e){}
+  try{ await deleteChunkedFile('part-manual', id); }catch(e){}
+  partsIndex = partsIndex.filter(p => p.id !== id);
+  await saveIndex();
+}
+
+const MAX_PDF_BYTES = 15 * 1024 * 1024; // 15MB (大きめの資料も入るようチャンク分割して保存する)
+const CHUNK_SIZE = 3000000; // 1チャンクあたりの文字数(base64後、1保存キー5MB上限に余裕を持たせる)
+
+async function saveChunkedFile(keyPrefix, id, name, dataUrl){
+  const chunkCount = Math.ceil(dataUrl.length / CHUNK_SIZE) || 1;
+  for(let i = 0; i < chunkCount; i++){
+    const chunk = dataUrl.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    await appStorage.set(`${keyPrefix}-chunk:${id}:${i}`, chunk, STORAGE_SHARED);
+  }
+  await appStorage.set(`${keyPrefix}:${id}`, JSON.stringify({ name, chunkCount }), STORAGE_SHARED);
+}
+
+async function loadChunkedFile(keyPrefix, id){
+  const res = await appStorage.get(`${keyPrefix}:${id}`, STORAGE_SHARED);
+  if(!res || !res.value) return null;
+  const meta = JSON.parse(res.value);
+  let dataUrl = '';
+  for(let i = 0; i < meta.chunkCount; i++){
+    const chunkRes = await appStorage.get(`${keyPrefix}-chunk:${id}:${i}`, STORAGE_SHARED);
+    if(!chunkRes || !chunkRes.value) throw new Error('ファイルの一部が見つかりませんでした');
+    dataUrl += chunkRes.value;
+  }
+  return { name: meta.name, data: dataUrl };
+}
+
+async function deleteChunkedFile(keyPrefix, id){
+  let meta = null;
+  try{
+    const res = await appStorage.get(`${keyPrefix}:${id}`, STORAGE_SHARED);
+    if(res && res.value) meta = JSON.parse(res.value);
+  }catch(e){ /* 元々存在しない場合はそのまま無視 */ }
+  if(meta){
+    for(let i = 0; i < meta.chunkCount; i++){
+      try{ await appStorage.delete(`${keyPrefix}-chunk:${id}:${i}`, STORAGE_SHARED); }catch(e){}
+    }
+  }
+  try{ await appStorage.delete(`${keyPrefix}:${id}`, STORAGE_SHARED); }catch(e){}
+}
+const DOC_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv,text/plain";
+const DOC_EXTENSIONS = ['.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.csv','.txt'];
+
+function isAllowedDocFile(file){
+  const lower = file.name.toLowerCase();
+  return DOC_EXTENSIONS.some(ext => lower.endsWith(ext));
+}
+
+function fileIcon(filename){
+  const lower = (filename || '').toLowerCase();
+  if(lower.endsWith('.pdf')) return '📄';
+  if(lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return '📊';
+  if(lower.endsWith('.doc') || lower.endsWith('.docx') || lower.endsWith('.txt')) return '📝';
+  if(lower.endsWith('.ppt') || lower.endsWith('.pptx')) return '📽️';
+  return '📎';
+}
+
+function readFileAsDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function dataUrlToBlob(dataUrl){
+  const [head, base64] = dataUrl.split(',');
+  const mime = head.match(/:(.*?);/)[1];
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+// ---- CSV一括インポート ----
+let csvState = { file: null, encoding: 'shift-jis', headers: [], rows: [], mapping: { partNumber: -1, name: -1, price: -1, product: -1 } };
+
+function resetCsvState(){
+  csvState = { file: null, encoding: 'shift-jis', headers: [], rows: [], mapping: { partNumber: -1, name: -1, price: -1, product: -1 } };
+}
+
+function parseCsvText(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; } else { inQuotes = false; }
+      }else{ field += c; }
+    }else{
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ','){ row.push(field); field = ''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+      else if(c === '\r'){ /* skip */ }
+      else{ field += c; }
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(cell => cell.trim() !== ''));
+}
+
+function guessColumn(headers, keywords){
+  for(let i = 0; i < headers.length; i++){
+    const h = headers[i].toLowerCase();
+    if(keywords.some(k => h.includes(k))) return i;
+  }
+  return -1;
+}
+
+async function handleCsvFile(file){
+  csvState.file = file;
+  await reparseCsvFile();
+}
+
+async function reparseCsvFile(){
+  if(!csvState.file) return;
+  const status = document.getElementById('csvStatus');
+  try{
+    const buf = await csvState.file.arrayBuffer();
+    const decoder = new TextDecoder(csvState.encoding);
+    const text = decoder.decode(buf);
+    const allRows = parseCsvText(text);
+    if(allRows.length < 1){
+      csvState.headers = []; csvState.rows = [];
+      if(status){ status.textContent = 'CSVの内容を読み取れませんでした。'; status.className = 'status-msg err'; }
+      renderCsvBody();
+      return;
+    }
+    csvState.headers = allRows[0].map(h => h.trim());
+    csvState.rows = allRows.slice(1);
+    csvState.mapping.partNumber = guessColumn(csvState.headers, ['品番','部品番号','code','part']);
+    csvState.mapping.name = guessColumn(csvState.headers, ['品名','名称','部品名','name']);
+    csvState.mapping.price = guessColumn(csvState.headers, ['単価','価格','金額','price']);
+    csvState.mapping.product = guessColumn(csvState.headers, ['製品名','製品','product']);
+    renderCsvBody();
+  }catch(e){
+    if(status){ status.textContent = 'CSVの読み込みに失敗しました。文字コードを変えて試してください。'; status.className = 'status-msg err'; }
+  }
+}
+
+function getMappedValue(row, key){
+  const idx = csvState.mapping[key];
+  if(idx === -1 || idx === undefined || idx === null) return '';
+  return row[idx] !== undefined ? row[idx].toString().trim() : '';
+}
+
+function csvSelectOptions(includeNone){
+  const opts = csvState.headers.map((h,i) => `<option value="${i}">${escapeHtml(h || ('列' + (i+1)))}</option>`);
+  return (includeNone ? [`<option value="-1">使用しない</option>`] : []).concat(opts).join('');
+}
+
+function renderCsvBody(){
+  const body = document.getElementById('csvBody');
+  if(!body) return;
+  if(!csvState.headers.length){
+    body.innerHTML = `<div class="map-empty">CSVファイルを選択してください。</div>`;
+    return;
+  }
+  const previewRows = csvState.rows.slice(0, 5).map(row => `
+    <tr>
+      <td>${escapeHtml(getMappedValue(row,'partNumber'))}</td>
+      <td>${escapeHtml(getMappedValue(row,'name'))}</td>
+      <td>${escapeHtml(getMappedValue(row,'price'))}</td>
+      <td>${escapeHtml(getMappedValue(row,'product'))}</td>
+    </tr>
+  `).join('');
+  body.innerHTML = `
+    <div class="two-col">
+      <div class="field"><label>品番の列（必須）</label>
+        <select id="mapPartNumber">${csvSelectOptions(false)}</select>
+      </div>
+      <div class="field"><label>品名の列（必須）</label>
+        <select id="mapName">${csvSelectOptions(false)}</select>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>単価の列（任意）</label>
+        <select id="mapPrice">${csvSelectOptions(true)}</select>
+      </div>
+      <div class="field"><label>製品名の列（任意）</label>
+        <select id="mapProduct">${csvSelectOptions(true)}</select>
+      </div>
+    </div>
+    <span class="section-label">プレビュー（先頭5件・${csvState.rows.length}件中）</span>
+    <div style="overflow-x:auto;">
+      <table class="comp-table">
+        <thead><tr><th>品番</th><th>品名</th><th>単価</th><th>製品名</th></tr></thead>
+        <tbody>${previewRows}</tbody>
+      </table>
+    </div>
+    <div class="status-msg" id="csvStatus"></div>
+    <div class="form-actions">
+      <button class="btn-primary" id="csvImportBtn">この内容でインポートする</button>
+    </div>
+  `;
+  document.getElementById('mapPartNumber').value = csvState.mapping.partNumber;
+  document.getElementById('mapName').value = csvState.mapping.name;
+  document.getElementById('mapPrice').value = csvState.mapping.price;
+  document.getElementById('mapProduct').value = csvState.mapping.product;
+  document.getElementById('mapPartNumber').addEventListener('change', (e) => { csvState.mapping.partNumber = Number(e.target.value); renderCsvBody(); });
+  document.getElementById('mapName').addEventListener('change', (e) => { csvState.mapping.name = Number(e.target.value); renderCsvBody(); });
+  document.getElementById('mapPrice').addEventListener('change', (e) => { csvState.mapping.price = Number(e.target.value); renderCsvBody(); });
+  document.getElementById('mapProduct').addEventListener('change', (e) => { csvState.mapping.product = Number(e.target.value); renderCsvBody(); });
+  document.getElementById('csvImportBtn').addEventListener('click', runCsvImport);
+}
+
+async function runCsvImport(){
+  const status = document.getElementById('csvStatus');
+  const importBtn = document.getElementById('csvImportBtn');
+  if(csvState.mapping.partNumber === -1 || csvState.mapping.name === -1){
+    status.textContent = '品番と品名の列は必ず選択してください。';
+    status.className = 'status-msg err';
+    return;
+  }
+  importBtn.disabled = true;
+  const byNumber = {};
+  partsIndex.forEach(p => { byNumber[(p.partNumber || '').trim()] = p.id; });
+
+  let added = 0, updated = 0, skipped = 0;
+  for(let i = 0; i < csvState.rows.length; i++){
+    const row = csvState.rows[i];
+    const partNumber = getMappedValue(row, 'partNumber');
+    if(!partNumber){ skipped++; continue; }
+    const name = getMappedValue(row, 'name');
+    const priceStr = getMappedValue(row, 'price').replace(/[^0-9.\-]/g, '');
+    const priceNum = priceStr === '' ? null : Number(priceStr);
+    const product = getMappedValue(row, 'product');
+
+    status.textContent = `処理中… (${i+1}/${csvState.rows.length})`;
+
+    if(byNumber[partNumber]){
+      const existing = await loadPart(byNumber[partNumber]);
+      if(existing){
+        existing.name = name || existing.name;
+        if(priceStr !== '' && !isNaN(priceNum)) existing.price = priceNum;
+        if(product) existing.product = product;
+        await appStorage.set('part:' + existing.id, JSON.stringify(existing), STORAGE_SHARED);
+        upsertIndexEntry(existing);
+        updated++;
+      }else{ skipped++; }
+    }else{
+      const rec = {
+        id: uid(), partNumber, name,
+        price: (priceStr !== '' && !isNaN(priceNum)) ? priceNum : null,
+        product, composition: [], notes: '', photoIds: [], hasPdf: false, pdfName: ''
+      };
+      await appStorage.set('part:' + rec.id, JSON.stringify(rec), STORAGE_SHARED);
+      upsertIndexEntry(rec);
+      byNumber[partNumber] = rec.id;
+      added++;
+    }
+  }
+  partsIndex.sort((a,b) => a.partNumber.localeCompare(b.partNumber, 'ja'));
+  await saveIndex();
+  applyFilter();
+  importBtn.disabled = false;
+  status.textContent = `完了しました。新規登録 ${added} 件／更新 ${updated} 件／スキップ ${skipped} 件`;
+  status.className = 'status-msg';
+}
+
+// ---- 写真でAI判定 ----
+let aiQueryImage = null; // data URL
+
+function closeAiModal(){
+  const overlay = document.getElementById('aiModalOverlay');
+  if(overlay) overlay.remove();
+  aiQueryImage = null;
+}
+
+function renderAiBody(){
+  const body = document.getElementById('aiBody');
+  if(!body) return;
+  const candidateCount = partsIndex.filter(p => p.hasPhoto).length;
+  body.innerHTML = `
+    <div class="field">
+      <label>判定したい写真</label>
+      <input type="file" id="aiFile" accept="image/*" capture="environment">
+      ${aiQueryImage ? `<img class="ai-preview" src="${aiQueryImage}">` : ''}
+    </div>
+    <div class="status-msg" id="aiStatus">
+      写真が登録されている部品：${candidateCount} 件が比較対象です。${candidateCount === 0 ? '（先に部品へ写真を登録してください）' : ''}
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="aiRunBtn" ${(!aiQueryImage || candidateCount===0) ? 'disabled' : ''}>この写真で判定する</button>
+    </div>
+    <div id="aiResults"></div>
+  `;
+  document.getElementById('aiFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const status = document.getElementById('aiStatus');
+    status.textContent = '写真を読み込んでいます…';
+    try{
+      aiQueryImage = await compressImage(file, 700, 0.75);
+      renderAiBody();
+    }catch(err){
+      status.textContent = '写真の読み込みに失敗しました。';
+    }
+  });
+  const runBtn = document.getElementById('aiRunBtn');
+  if(runBtn) runBtn.addEventListener('click', runAiIdentify);
+}
+
+function openAiModal(){
+  aiQueryImage = null;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'aiModalOverlay';
+  overlay.innerHTML = `
+    <div class="modal-box wide">
+      <div class="modal-top">
+        <h3>写真でAI判定</h3>
+        <button class="btn-ghost" id="aiCloseBtn">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="status-msg" style="margin-bottom:10px;">写真を撮る・選ぶと、登録済みの部品写真と見比べて似ているものを提案します（インターネット通信は使わず、この画面の中だけで比較します）。<strong>部品を画面いっぱい・中央に写す</strong>と精度が上がります。ラベルや箱ではなく、部品そのものを撮ってください。角度や照明が大きく違うと精度は落ちるので、あくまで候補の目安としてお使いください。</div>
+        <div id="aiBody"></div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeAiModal(); });
+  document.body.appendChild(overlay);
+  document.getElementById('aiCloseBtn').addEventListener('click', closeAiModal);
+  renderAiBody();
+}
+
+function loadCroppedPixels(dataUrl, targetW, targetH, cropRatio){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const cropSize = Math.min(img.width, img.height) * cropRatio;
+      const sx = (img.width - cropSize) / 2;
+      const sy = (img.height - cropSize) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW; canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, sx, sy, cropSize, cropSize, 0, 0, targetW, targetH);
+      resolve(ctx.getImageData(0, 0, targetW, targetH).data);
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+// 写真の中心付近（背景や余白を除いた部分）だけを見て、形の勾配パターンを比較する
+async function computeStructHash(dataUrl){
+  const size = 9;
+  const data = await loadCroppedPixels(dataUrl, size, size, 0.8);
+  const gray = [];
+  for(let y = 0; y < size; y++){
+    const row = [];
+    for(let x = 0; x < size; x++){
+      const i = (y * size + x) * 4;
+      row.push(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+    }
+    gray.push(row);
+  }
+  let bits = '';
+  for(let y = 0; y < size; y++) for(let x = 0; x < size - 1; x++) bits += gray[y][x] > gray[y][x+1] ? '1' : '0';
+  for(let x = 0; x < size; x++) for(let y = 0; y < size - 1; y++) bits += gray[y][x] > gray[y+1][x] ? '1' : '0';
+  return bits;
+}
+
+async function computeColorHist(dataUrl){
+  const size = 32;
+  const data = await loadCroppedPixels(dataUrl, size, size, 0.8);
+  const hist = new Array(12).fill(0);
+  const total = size * size;
+  for(let i = 0; i < data.length; i += 4){
+    hist[Math.min(3, data[i] >> 6)] += 1;
+    hist[4 + Math.min(3, data[i+1] >> 6)] += 1;
+    hist[8 + Math.min(3, data[i+2] >> 6)] += 1;
+  }
+  return hist.map(v => v / total);
+}
+
+function hashSimilarity(a, b){
+  let same = 0;
+  for(let i = 0; i < a.length; i++) if(a[i] === b[i]) same++;
+  return same / a.length;
+}
+
+function histSimilarity(h1, h2){
+  let diff = 0;
+  for(let i = 0; i < h1.length; i++) diff += Math.abs(h1[i] - h2[i]);
+  return Math.max(0, 1 - diff / 6);
+}
+
+async function runAiIdentify(){
+  const status = document.getElementById('aiStatus');
+  const runBtn = document.getElementById('aiRunBtn');
+  const resultsEl = document.getElementById('aiResults');
+  resultsEl.innerHTML = '';
+  runBtn.disabled = true;
+  status.textContent = '登録済みの写真と見比べています…';
+
+  try{
+    const queryHash = await computeStructHash(aiQueryImage);
+    const queryHist = await computeColorHist(aiQueryImage);
+    const candidateEntries = partsIndex.filter(p => p.hasPhoto);
+
+    const scored = [];
+    for(const entry of candidateEntries){
+      const full = await loadPart(entry.id);
+      if(!full) continue;
+      const photos = await loadPartPhotos(full);
+      if(!photos.length) continue;
+      let bestScore = -1, bestPhoto = null;
+      for(const ph of photos){
+        try{
+          const h = await computeStructHash(ph.data);
+          const hist = await computeColorHist(ph.data);
+          const score = 0.75 * hashSimilarity(queryHash, h) + 0.25 * histSimilarity(queryHist, hist);
+          if(score > bestScore){ bestScore = score; bestPhoto = ph.data; }
+        }catch(e){ /* skip unreadable photo */ }
+      }
+      if(bestPhoto) scored.push({ part: full, photo: bestPhoto, score: bestScore });
+    }
+
+    if(scored.length === 0){
+      status.textContent = '比較できる写真がありませんでした。';
+      runBtn.disabled = false;
+      return;
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 3).filter(s => s.score >= 0.62);
+
+    if(top.length === 0){
+      status.textContent = '判定が完了しました。';
+      resultsEl.innerHTML = `<div class="ai-no-match">ありません 😢<div class="ai-no-match-sub">似ている部品は見つかりませんでした。</div></div>`;
+      runBtn.disabled = false;
+      return;
+    }
+
+    status.textContent = `判定結果（登録済み写真 ${scored.length} 件から比較）`;
+    resultsEl.innerHTML = top.map(t => {
+      const confidence = t.score >= 0.88 ? 'high' : (t.score >= 0.75 ? 'medium' : 'low');
+      const confLabel = { high:'確信度: 高', medium:'確信度: 中', low:'確信度: 低' }[confidence];
+      const isLow = confidence === 'low';
+      return `
+        <div class="ai-result-row">
+          <img src="${t.photo}">
+          <div class="ai-result-main">
+            <div class="ai-result-top">
+              <span class="ai-result-title">${escapeHtml(t.part.name)}</span>
+              <span class="ai-confidence">${escapeHtml(confLabel)}</span>
+            </div>
+            <div class="ai-result-code">${escapeHtml(t.part.partNumber)}</div>
+            ${isLow ? `<div class="ai-warning">これじゃないかもしれません！</div>` : ''}
+            <div class="ai-reason">画像の一致度: ${Math.round(t.score * 100)}%</div>
+            <button class="ai-open-btn" data-id="${t.part.id}">この部品を開く</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    resultsEl.querySelectorAll('.ai-open-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        closeAiModal();
+        selectPart(btn.dataset.id);
+      });
+    });
+    runBtn.disabled = false;
+  }catch(e){
+    status.textContent = `判定に失敗しました：${(e && e.message) || e}`;
+    runBtn.disabled = false;
+  }
+}
+
+function closeCsvModal(){
+  const overlay = document.getElementById('csvModalOverlay');
+  if(overlay) overlay.remove();
+  resetCsvState();
+}
+
+function openCsvModal(){
+  resetCsvState();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'csvModalOverlay';
+  overlay.innerHTML = `
+    <div class="modal-box wide">
+      <div class="modal-top">
+        <h3>CSV一括インポート</h3>
+        <button class="btn-ghost" id="csvCloseBtn">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="two-col">
+          <div class="field">
+            <label>文字コード</label>
+            <select id="csvEncoding">
+              <option value="shift-jis">Shift-JIS（Windows/Excel等でよくある形式）</option>
+              <option value="utf-8">UTF-8</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>CSVファイル</label>
+            <input type="file" id="csvFile" accept=".csv,text/csv">
+          </div>
+        </div>
+        <div id="csvBody"><div class="map-empty">CSVファイルを選択してください。</div></div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeCsvModal(); });
+  document.body.appendChild(overlay);
+  document.getElementById('csvCloseBtn').addEventListener('click', closeCsvModal);
+  document.getElementById('csvEncoding').addEventListener('change', (e) => {
+    csvState.encoding = e.target.value;
+    reparseCsvFile();
+  });
+  document.getElementById('csvFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(file) handleCsvFile(file);
+  });
+}
+
+function showImageModal(url){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<img src="${url}" style="max-width:100%;max-height:90vh;border-radius:var(--radius);box-shadow:0 8px 32px rgba(38,36,33,0.4);">`;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
+
+// ---- 手順書だけを探す ----
+function closeManualBrowseModal(){
+  const overlay = document.getElementById('manualBrowseOverlay');
+  if(overlay) overlay.remove();
+}
+
+function renderManualBrowseList(query){
+  const q = (query || '').trim().toLowerCase();
+  const rows = partsIndex
+    .filter(p => p.hasManualPdf)
+    .filter(p => !q || (p.partNumber||'').toLowerCase().includes(q) || (p.name||'').toLowerCase().includes(q) || productKeyOf(p).toLowerCase().includes(q))
+    .sort((a,b) => a.partNumber.localeCompare(b.partNumber, 'ja'));
+
+  const listEl2 = document.getElementById('manualBrowseList');
+  if(rows.length === 0){
+    listEl2.innerHTML = `<div class="map-empty">${partsIndex.some(p=>p.hasManualPdf) ? '一致する部品が見つかりません。' : '手順書が登録されている部品はまだありません。'}</div>`;
+    return;
+  }
+  listEl2.innerHTML = rows.map(p => `
+    <div class="map-row">
+      <span class="code">${escapeHtml(p.partNumber)}</span>
+      <span class="prod">${escapeHtml(p.name)}${p.product ? `（${escapeHtml(productKeyOf(p))}）` : ''}</span>
+      <button data-id="${p.id}" data-number="${escapeHtml(p.partNumber)}" class="manualViewBtn">手順書を見る</button>
+    </div>
+  `).join('');
+  listEl2.querySelectorAll('.manualViewBtn').forEach(btn => {
+    btn.addEventListener('click', () => openPartManual(btn.dataset.id, btn.dataset.number));
+  });
+}
+
+function openManualBrowseModal(){
+  closeManualBrowseModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'manualBrowseOverlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>手順書を探す</h3>
+        <button class="btn-ghost" id="manualBrowseCloseBtn">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="map-add-row" style="grid-template-columns: 1fr auto;">
+          <input type="text" id="manualBrowseSearch" class="mono" placeholder="品番・品名・製品名で絞り込み">
+          <button type="button" class="btn-ghost" id="manualBrowseAllBtn">全ての一覧</button>
+        </div>
+        <div class="map-list" id="manualBrowseList"></div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeManualBrowseModal(); });
+  document.body.appendChild(overlay);
+  overlay.querySelector('#manualBrowseCloseBtn').addEventListener('click', closeManualBrowseModal);
+  const searchEl = overlay.querySelector('#manualBrowseSearch');
+  searchEl.addEventListener('input', (e) => renderManualBrowseList(e.target.value));
+  document.getElementById('manualBrowseList').innerHTML = `<div class="map-empty">品番・品名・製品名で検索するか、「全ての一覧」を押してください。</div>`;
+}
+
+// ボタンの生成タイミングに依存しないよう、document全体でクリックを監視する方式に変更
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('#manualBrowseAllBtn');
+  if(!btn) return;
+  const searchEl = document.getElementById('manualBrowseSearch');
+  if(searchEl) searchEl.value = '';
+  renderManualBrowseList('');
+});
+
+// ---- 管理者メニュー ----
+function closeAdminModal(){
+  const overlay = document.getElementById('adminModalOverlay');
+  if(overlay) overlay.remove();
+}
+
+function openAdminModal(){
+  closeAdminModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'adminModalOverlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>管理者メニュー</h3>
+        <button class="btn-ghost" id="adminCloseBtn">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="map-row" style="cursor:pointer;" id="adminCsvRow">
+          <span class="prod">CSV一括インポート</span>
+          <button class="row-open-btn">開く</button>
+        </div>
+        <div class="map-row" style="cursor:pointer;" id="adminMapRow">
+          <span class="prod">品番→製品名 自動入力の設定</span>
+          <button class="row-open-btn">開く</button>
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeAdminModal(); });
+  document.body.appendChild(overlay);
+  overlay.querySelector('#adminCloseBtn').addEventListener('click', closeAdminModal);
+  overlay.querySelector('#adminCsvRow').addEventListener('click', () => { closeAdminModal(); openCsvModal(); });
+  overlay.querySelector('#adminMapRow').addEventListener('click', () => { closeAdminModal(); renderMapModal(); });
+}
+
+function closeMapModal(){
+  const overlay = document.getElementById('mapModalOverlay');
+  if(overlay) overlay.remove();
+}
+
+function renderMapModal(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'mapModalOverlay';
+  const entries = Object.entries(productMap).sort((a,b) => a[0].localeCompare(b[0], 'ja'));
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-top">
+        <h3>品番→製品名 自動入力の設定</h3>
+        <button class="btn-ghost" id="mapCloseBtn">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <div class="status-msg" style="margin-bottom:14px;">ここで「品番」と「製品名」の組み合わせを登録しておくと、部品の登録・編集フォームで品番を入力したときに、製品名欄が自動で入力されるようになります。<br>組み合わせはいくつでも追加登録できます。</div>
+        <div class="map-add-row">
+          <input type="text" id="mapCode" class="mono" placeholder="品番（例: L-15）">
+          <input type="text" id="mapProduct" placeholder="製品名（例: 視野計）">
+          <button type="button" class="btn-primary" id="mapAddBtn">追加</button>
+        </div>
+        <div class="map-list" id="mapList">
+          ${entries.length ? entries.map(([code, prod]) => `
+            <div class="map-row">
+              <span class="code">${escapeHtml(code)}</span>
+              <span class="prod">${escapeHtml(prod)}</span>
+              <button data-code="${escapeHtml(code)}" class="mapDelBtn">削除</button>
+            </div>
+          `).join('') : `<div class="map-empty">まだ登録されていません。上のフォームから品番と製品名を追加してください。</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeMapModal(); });
+  document.body.appendChild(overlay);
+  document.getElementById('mapCloseBtn').addEventListener('click', closeMapModal);
+  document.getElementById('mapAddBtn').addEventListener('click', onAddMapRow);
+  overlay.querySelectorAll('.mapDelBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      delete productMap[btn.dataset.code];
+      await saveProductMap();
+      renderMapModal();
+    });
+  });
+}
+
+async function onAddMapRow(){
+  const codeInput = document.getElementById('mapCode');
+  const prodInput = document.getElementById('mapProduct');
+  const code = normalizeCode(codeInput.value);
+  const prod = prodInput.value.trim();
+  if(!code || !prod) return;
+  productMap[code] = prod;
+  await saveProductMap();
+  renderMapModal();
+}
+
+async function openPartCalib(id, fallbackName){
+  try{
+    const file = await loadChunkedFile('part-calib', id);
+    if(!file){ alert('構成データの取得に失敗しました。'); return; }
+    const blob = dataUrlToBlob(file.data);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name || (fallbackName ? fallbackName + '_構成.pdf' : 'calibration.pdf');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }catch(e){
+    alert('構成データの取得に失敗しました。');
+  }
+}
+
+async function openPartManual(id, fallbackName){
+  try{
+    const file = await loadChunkedFile('part-manual', id);
+    if(!file){ alert('手順書の取得に失敗しました。'); return; }
+    const blob = dataUrlToBlob(file.data);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name || (fallbackName ? fallbackName + '_手順書.pdf' : 'manual.pdf');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }catch(e){
+    alert('手順書の取得に失敗しました。');
+  }
+}
+
+async function openPartPdf(id, fallbackName){
+  try{
+    const file = await loadChunkedFile('part-pdf', id);
+    if(!file){ alert('PDFの取得に失敗しました。'); return; }
+    const blob = dataUrlToBlob(file.data);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name || (fallbackName ? fallbackName + '.pdf' : 'document.pdf');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }catch(e){
+    alert('PDFの取得に失敗しました。');
+  }
+}
+
+function productKeyOf(p){
+  return (p.product && p.product.trim()) ? p.product.trim() : '未分類';
+}
+
+function getProductGroups(){
+  const map = {};
+  partsIndex.forEach(p => {
+    const key = productKeyOf(p);
+    map[key] = (map[key] || 0) + 1;
+  });
+  return Object.entries(map).sort((a,b) => a[0].localeCompare(b[0], 'ja'));
+}
+
+function renderProductSelect(){
+  const groups = getProductGroups();
+  let html = `<option value="__all__" ${selectedProduct===null ? 'selected':''}>すべて（${partsIndex.length}）</option>`;
+  groups.forEach(([name, count]) => {
+    html += `<option value="${escapeHtml(name)}" ${selectedProduct===name ? 'selected':''}>${escapeHtml(name)}（${count}）</option>`;
+  });
+  productSelectEl.innerHTML = html;
+}
+
+productSelectEl.addEventListener('change', () => {
+  selectedProduct = (productSelectEl.value === '__all__') ? null : productSelectEl.value;
+  applyFilter();
+});
+
+function applyFilter(){
+  const q = searchAllEl.value.trim().toLowerCase();
+  filteredIndex = partsIndex.filter(p => {
+    const matchesQuery = !q
+      || (p.partNumber||'').toLowerCase().includes(q)
+      || (p.name||'').toLowerCase().includes(q)
+      || productKeyOf(p).toLowerCase().includes(q);
+    const matchesProduct = selectedProduct === null || productKeyOf(p) === selectedProduct;
+    return matchesQuery && matchesProduct;
+  });
+  renderList();
+  renderCount();
+  renderProductSelect();
+}
+function renderCount(){
+  countBadge.textContent = partsIndex.length + ' 件登録';
+}
+
+function renderList(){
+  if(filteredIndex.length === 0){
+    listEl.innerHTML = `<div class="empty-list">${partsIndex.length===0 ? '登録されている部品がまだありません。右上の「＋ 新規登録」から追加してください。' : '一致する部品が見つかりません。'}</div>`;
+    return;
+  }
+  listEl.innerHTML = filteredIndex.map(p => `
+    <div class="part-row ${p.id===selectedId ? 'active':''}" data-id="${p.id}" role="button" tabindex="0">
+      <div class="part-row-text">
+        <span class="p-number">${escapeHtml(p.partNumber)}</span>
+        <span class="p-name">${escapeHtml(p.name)}</span>
+      </div>
+      ${p.hasManualPdf ? `<button class="row-manual-btn" data-id="${p.id}" data-number="${escapeHtml(p.partNumber)}" title="手順書を見る">📘</button>` : ''}
+    </div>
+  `).join('');
+  listEl.querySelectorAll('.part-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if(e.target.closest('.row-manual-btn')) return;
+      selectPart(row.dataset.id);
+    });
+    row.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectPart(row.dataset.id); }
+    });
+  });
+  listEl.querySelectorAll('.row-manual-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPartManual(btn.dataset.id, btn.dataset.number);
+    });
+  });
+}
+
+async function selectPart(id){
+  selectedId = id;
+  mode = 'detail';
+  confirmDeleteId = null;
+  appEl.classList.add('detail-active');
+  renderList();
+  contentEl.innerHTML = `<div class="placeholder"><div class="mark">···</div><div>読み込み中です</div></div>`;
+  const part = await loadPart(id);
+  if(selectedId !== id) return; // stale
+  if(!part){
+    contentEl.innerHTML = `<div class="placeholder"><div class="mark">!</div><div>データが見つかりませんでした</div></div>`;
+    return;
+  }
+  const photos = await loadPartPhotos(part);
+  if(selectedId !== id) return; // stale
+  renderDetail(part, photos);
+}
+
+function renderDetail(part, photos){
+  photos = photos || [];
+  contentEl.innerHTML = `
+    <button class="back-link" id="backBtn">✕ 閉じる（一覧に戻る）</button>
+    <div class="card">
+      <div class="card-top">
+        <div>
+          <div class="product-breadcrumb">${escapeHtml(productKeyOf(part))}</div>
+          <div class="p-number-lg">${escapeHtml(part.partNumber)}</div>
+          <h2>${escapeHtml(part.name)}</h2>
+        </div>
+        <div class="price-tag">¥${yen(part.price)}<span>単価</span></div>
+      </div>
+      <div class="card-body">
+        <div>
+          <span class="section-label">写真（${photos.length}枚）</span>
+          ${photos.length ? `
+            <div class="photo-gallery">
+              ${photos.map((ph,i) => `<div class="photo-thumb" data-idx="${i}"><img src="${ph.data}" alt="${escapeHtml(part.name)}"></div>`).join('')}
+            </div>
+          ` : `<div class="photo-box"><div class="no-photo">写真未登録</div></div>`}
+        </div>
+        <div>
+          <span class="section-label">構成部品</span>
+          ${(part.composition && part.composition.filter(c => c.name).length) ? `
+            <table class="comp-table">
+              <tr><th>部品名</th><th>数量</th></tr>
+              ${part.composition.filter(c => c.name).map(c => `<tr><td>${escapeHtml(c.name)}</td><td class="qty">${escapeHtml(c.qty)}</td></tr>`).join('')}
+            </table>
+          ` : `<div class="no-comp">構成部品は登録されていません。</div>`}
+          <span class="section-label" style="margin-top:18px;">構成データ</span>
+          ${part.hasCalibPdf
+            ? `<div class="pdf-chip"><span>${fileIcon(part.calibPdfName)} ${escapeHtml(part.calibPdfName || '構成データ')}</span><button id="openCalibBtn">構成確認</button></div>`
+            : `<div class="no-pdf">構成データは登録されていません。</div>`}
+          <span class="section-label" style="margin-top:18px;">図面・仕様書</span>
+          ${part.hasPdf
+            ? `<div class="pdf-chip"><span>${fileIcon(part.pdfName)} ${escapeHtml(part.pdfName || '添付ファイル')}</span><button id="openPdfBtn">ダウンロード</button></div>`
+            : `<div class="no-pdf">ファイルは添付されていません。</div>`}
+          <span class="section-label" style="margin-top:18px;">手順書</span>
+          ${part.hasManualPdf
+            ? `<div class="pdf-chip"><span>${fileIcon(part.manualPdfName)} ${escapeHtml(part.manualPdfName || '手順書')}</span><button id="openManualBtn">手順書を見る</button></div>`
+            : `<div class="no-pdf">手順書は登録されていません。</div>`}
+        </div>
+        ${part.notes ? `<div class="notes-block"><span class="section-label">備考</span>${escapeHtml(part.notes)}</div>` : ''}
+        ${confirmDeleteId === part.id ? `
+          <div class="confirm-bar">
+            <span>この部品を削除します。よろしいですか？</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-ghost" id="cancelDelBtn">キャンセル</button>
+              <button class="btn-danger" id="okDelBtn">削除する</button>
+            </div>
+          </div>` : ''}
+      </div>
+      <div class="card-top" style="border-top:1px solid var(--line);border-bottom:none;">
+        <div class="card-actions">
+          <button class="btn-ghost" id="editBtn">編集する</button>
+          <button class="btn-danger" id="delBtn">削除する</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const backBtn = document.getElementById('backBtn');
+  if(backBtn) backBtn.addEventListener('click', () => {
+    selectedId = null;
+    mode = 'empty';
+    appEl.classList.remove('detail-active');
+    renderList();
+    renderEmpty();
+  });
+  document.getElementById('editBtn').addEventListener('click', () => openForm(part));
+  contentEl.querySelectorAll('.photo-thumb').forEach(el => {
+    el.addEventListener('click', () => showImageModal(photos[Number(el.dataset.idx)].data));
+  });
+  const openPdfBtn = document.getElementById('openPdfBtn');
+  if(openPdfBtn) openPdfBtn.addEventListener('click', () => openPartPdf(part.id, part.partNumber));
+  const openCalibBtn = document.getElementById('openCalibBtn');
+  if(openCalibBtn) openCalibBtn.addEventListener('click', () => openPartCalib(part.id, part.partNumber));
+  const openManualBtn = document.getElementById('openManualBtn');
+  if(openManualBtn) openManualBtn.addEventListener('click', () => openPartManual(part.id, part.partNumber));
+  document.getElementById('delBtn').addEventListener('click', () => { confirmDeleteId = part.id; renderDetail(part, photos); });
+  const cancelDelBtn = document.getElementById('cancelDelBtn');
+  if(cancelDelBtn) cancelDelBtn.addEventListener('click', () => { confirmDeleteId = null; renderDetail(part, photos); });
+  const okDelBtn = document.getElementById('okDelBtn');
+  if(okDelBtn) okDelBtn.addEventListener('click', async () => {
+    await deletePartById(part.id);
+    selectedId = null;
+    mode = 'empty';
+    appEl.classList.remove('detail-active');
+    applyFilter();
+    renderEmpty();
+  });
+}
+
+function renderEmpty(){
+  contentEl.innerHTML = `
+    <div class="placeholder">
+      <div class="mark">⌘</div>
+      <div>左の一覧から部品を選ぶか、「＋ 新規登録」で追加してください。</div>
+    </div>`;
+}
+
+async function openForm(existing){
+  mode = 'form';
+  appEl.classList.add('detail-active');
+  const newEditing = existing ? JSON.parse(JSON.stringify(existing)) : {
+    id: uid(), partNumber: '', name: '', price: '', product: '', composition: [], notes: '', photoIds: [],
+    hasPdf: false, pdfName: '', hasCalibPdf: false, calibPdfName: '', hasManualPdf: false, manualPdfName: ''
+  };
+  newEditing._pdfPending = null;   // { name, data } when a new/changed PDF is chosen but not yet saved
+  newEditing._pdfRemoved = false;  // true if user removed an existing PDF
+  newEditing._calibPending = null;
+  newEditing._calibRemoved = false;
+  newEditing._manualPending = null;
+  newEditing._manualRemoved = false;
+  newEditing._newPhotos = [];        // [{id, data}] newly chosen photos, not yet saved
+  newEditing._removedPhotoIds = [];  // ids of existing photos marked for removal
+  newEditing._legacyPhotoRemoved = false;
+  editingPart = newEditing;
+  contentEl.innerHTML = `<div class="placeholder"><div class="mark">···</div><div>読み込み中です</div></div>`;
+  const photos = existing ? await loadPartPhotos(existing) : [];
+  if(editingPart !== newEditing || mode !== 'form') return; // superseded by a newer call
+  newEditing._existingPhotos = photos;
+  renderForm();
+}
+
+function renderForm(){
+  const p = editingPart;
+  contentEl.innerHTML = `
+    <button class="back-link" id="backBtn">✕ キャンセルして閉じる</button>
+    <div class="form-wrap">
+      <h2>${p.name || p.partNumber ? '部品情報を編集' : '新規部品を登録'}</h2>
+      <div class="two-col">
+        <div class="field mono">
+          <label>品番</label>
+          <input type="text" id="f-partNumber" value="${escapeHtml(p.partNumber)}" placeholder="例: A-1023">
+        </div>
+        <div class="field">
+          <label>品名</label>
+          <input type="text" id="f-name" value="${escapeHtml(p.name)}" placeholder="例: 六角ボルト">
+        </div>
+      </div>
+      <div class="field mono" style="max-width:220px;">
+        <label>単価（円）</label>
+        <input type="number" id="f-price" value="${escapeHtml(String(p.price ?? ''))}" placeholder="例: 120">
+      </div>
+
+      <div class="field">
+        <label>製品名</label>
+        <input type="text" id="f-product" list="productOptions" value="${escapeHtml(p.product || '')}" placeholder="例: 掃除機 X100">
+        <datalist id="productOptions">
+          ${getProductGroups().filter(([n]) => n !== '未分類').map(([n]) => `<option value="${escapeHtml(n)}">`).join('')}
+        </datalist>
+        <div class="auto-fill-note" id="autoFillNote"></div>
+      </div>
+
+      <div class="field">
+        <label>構成データ（PDF・Excel・Word・PowerPointなど、任意・15MBまで）</label>
+        <div class="pdf-input-box" id="calibBox">
+          ${calibCurrentHtml()}
+          <input type="file" id="f-calib" accept="${DOC_ACCEPT}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>写真（任意・何枚でも追加できます）</label>
+        <div class="photo-input-box">
+          ${photoGridHtml()}
+          <input type="file" id="f-photo" accept="image/*" multiple>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>図面・仕様書など（PDF・Excel・Word・PowerPointなど、任意・15MBまで）</label>
+        <div class="pdf-input-box" id="pdfBox">
+          ${pdfCurrentHtml()}
+          <input type="file" id="f-pdf" accept="${DOC_ACCEPT}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>手順書（PDF・Excel・Word・PowerPointなど、任意・15MBまで）</label>
+        <div class="pdf-input-box" id="manualBox">
+          ${manualCurrentHtml()}
+          <input type="file" id="f-manual" accept="${DOC_ACCEPT}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>備考（任意）</label>
+        <textarea id="f-notes" placeholder="材質・保管場所・仕入先など">${escapeHtml(p.notes || '')}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" id="saveBtn">保存する</button>
+        <button class="btn-ghost" id="cancelFormBtn">キャンセル</button>
+      </div>
+      <div class="status-msg" id="formStatus"></div>
+    </div>
+  `;
+
+  const backBtn = document.getElementById('backBtn');
+  if(backBtn) backBtn.addEventListener('click', () => {
+    if(selectedId){ selectPart(selectedId); } else { mode='empty'; appEl.classList.remove('detail-active'); renderEmpty(); }
+  });
+
+  document.getElementById('f-partNumber').addEventListener('blur', () => {
+    const pnVal = document.getElementById('f-partNumber').value;
+    const matched = lookupProduct(pnVal);
+    const productField = document.getElementById('f-product');
+    const note = document.getElementById('autoFillNote');
+    if(matched && !productField.value.trim()){
+      productField.value = matched;
+      editingPart.product = matched;
+      note.textContent = `辞書登録から自動入力しました（${pnVal.trim()} → ${matched}）`;
+    }else if(!matched){
+      note.textContent = '';
+    }
+  });
+
+  document.getElementById('f-photo').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+    const status = document.getElementById('formStatus');
+    status.textContent = `写真を処理しています…（${files.length}枚）`;
+    status.className = 'status-msg';
+    try{
+      syncFieldsFromDom();
+      for(const file of files){
+        const dataUrl = await compressImage(file, 1000, 0.72);
+        editingPart._newPhotos.push({ id: uid(), data: dataUrl });
+      }
+      status.textContent = '';
+      renderForm();
+    }catch(err){
+      status.textContent = '写真の読み込みに失敗しました。別の画像でお試しください。';
+      status.className = 'status-msg err';
+    }
+  });
+
+  contentEl.querySelectorAll('.rm-photo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      syncFieldsFromDom();
+      const id = btn.dataset.id;
+      if(btn.dataset.kind === 'pending'){
+        editingPart._newPhotos = editingPart._newPhotos.filter(ph => ph.id !== id);
+      }else if(id === 'legacy'){
+        editingPart._legacyPhotoRemoved = true;
+      }else{
+        editingPart._removedPhotoIds.push(id);
+      }
+      renderForm();
+    });
+  });
+
+  document.getElementById('f-pdf').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const status = document.getElementById('formStatus');
+    if(!isAllowedDocFile(file)){
+      status.textContent = 'PDF・Excel・Word・PowerPointなど対応しているファイルを選択してください。';
+      status.className = 'status-msg err';
+      e.target.value = '';
+      return;
+    }
+    if(file.size > MAX_PDF_BYTES){
+      status.textContent = 'ファイルが大きすぎます（15MB以下にしてください）。';
+      status.className = 'status-msg err';
+      e.target.value = '';
+      return;
+    }
+    status.textContent = 'PDFを読み込んでいます…';
+    status.className = 'status-msg';
+    try{
+      const dataUrl = await readFileAsDataUrl(file);
+      syncFieldsFromDom();
+      editingPart._pdfPending = { name: file.name, data: dataUrl };
+      editingPart._pdfRemoved = false;
+      status.textContent = '';
+      renderForm();
+    }catch(err){
+      status.textContent = 'PDFの読み込みに失敗しました。';
+      status.className = 'status-msg err';
+    }
+  });
+
+  const removePdfBtn = document.getElementById('removePdfBtn');
+  if(removePdfBtn){
+    removePdfBtn.addEventListener('click', () => {
+      syncFieldsFromDom();
+      editingPart._pdfPending = null;
+      editingPart._pdfRemoved = true;
+      renderForm();
+    });
+  }
+
+  document.getElementById('f-calib').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const status = document.getElementById('formStatus');
+    if(!isAllowedDocFile(file)){
+      status.textContent = 'PDF・Excel・Word・PowerPointなど対応しているファイルを選択してください。';
+      status.className = 'status-msg err';
+      e.target.value = '';
+      return;
+    }
+    if(file.size > MAX_PDF_BYTES){
+      status.textContent = '構成データが大きすぎます（15MB以下にしてください）。';
+      status.className = 'status-msg err';
+      e.target.value = '';
+      return;
+    }
+    status.textContent = '構成データを読み込んでいます…';
+    status.className = 'status-msg';
+    try{
+      const dataUrl = await readFileAsDataUrl(file);
+      syncFieldsFromDom();
+      editingPart._calibPending = { name: file.name, data: dataUrl };
+      editingPart._calibRemoved = false;
+      status.textContent = '';
+      renderForm();
+    }catch(err){
+      status.textContent = '構成データの読み込みに失敗しました。';
+      status.className = 'status-msg err';
+    }
+  });
+
+  const removeCalibBtn = document.getElementById('removeCalibBtn');
+  if(removeCalibBtn){
+    removeCalibBtn.addEventListener('click', () => {
+      syncFieldsFromDom();
+      editingPart._calibPending = null;
+      editingPart._calibRemoved = true;
+      renderForm();
+    });
+  }
+
+  document.getElementById('f-manual').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const status = document.getElementById('formStatus');
+    if(!isAllowedDocFile(file)){
+      status.textContent = 'PDF・Excel・Word・PowerPointなど対応しているファイルを選択してください。';
+      status.className = 'status-msg err';
+      e.target.value = '';
+      return;
+    }
+    if(file.size > MAX_PDF_BYTES){
+      status.textContent = '手順書が大きすぎます（15MB以下にしてください）。';
+      status.className = 'status-msg err';
+      e.target.value = '';
+      return;
+    }
+    status.textContent = '手順書を読み込んでいます…';
+    status.className = 'status-msg';
+    try{
+      const dataUrl = await readFileAsDataUrl(file);
+      syncFieldsFromDom();
+      editingPart._manualPending = { name: file.name, data: dataUrl };
+      editingPart._manualRemoved = false;
+      status.textContent = '';
+      renderForm();
+    }catch(err){
+      status.textContent = '手順書の読み込みに失敗しました。';
+      status.className = 'status-msg err';
+    }
+  });
+
+  const removeManualBtn = document.getElementById('removeManualBtn');
+  if(removeManualBtn){
+    removeManualBtn.addEventListener('click', () => {
+      syncFieldsFromDom();
+      editingPart._manualPending = null;
+      editingPart._manualRemoved = true;
+      renderForm();
+    });
+  }
+
+  document.getElementById('cancelFormBtn').addEventListener('click', () => {
+    if(selectedId){ selectPart(selectedId); } else { mode='empty'; appEl.classList.remove('detail-active'); renderEmpty(); }
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', onSaveForm);
+}
+
+function photoGridHtml(){
+  const p = editingPart;
+  const existing = (p._existingPhotos || []).filter(ph => {
+    if(ph.legacy) return !p._legacyPhotoRemoved;
+    return !p._removedPhotoIds.includes(ph.id);
+  });
+  const pending = p._newPhotos || [];
+  if(existing.length === 0 && pending.length === 0) return '';
+  const existingHtml = existing.map(ph => `
+    <div class="form-photo-thumb"><img src="${ph.data}"><button type="button" class="rm-photo" data-kind="existing" data-id="${ph.id}">×</button></div>
+  `).join('');
+  const pendingHtml = pending.map(ph => `
+    <div class="form-photo-thumb"><img src="${ph.data}"><button type="button" class="rm-photo" data-kind="pending" data-id="${ph.id}">×</button></div>
+  `).join('');
+  return `<div class="photo-grid-form">${existingHtml}${pendingHtml}</div>`;
+}
+
+function pdfCurrentHtml(){
+  const p = editingPart;
+  if(p._pdfPending){
+    return `<div class="pdf-current"><span>${fileIcon(p._pdfPending.name)} ${escapeHtml(p._pdfPending.name)}（新規）</span><button type="button" id="removePdfBtn">取り消す</button></div>`;
+  }
+  if(p.hasPdf && !p._pdfRemoved){
+    return `<div class="pdf-current"><span>${fileIcon(p.pdfName)} ${escapeHtml(p.pdfName || '添付ファイル')}</span><button type="button" id="removePdfBtn">削除する</button></div>`;
+  }
+  return '';
+}
+
+function calibCurrentHtml(){
+  const p = editingPart;
+  if(p._calibPending){
+    return `<div class="pdf-current"><span>${fileIcon(p._calibPending.name)} ${escapeHtml(p._calibPending.name)}（新規）</span><button type="button" id="removeCalibBtn">取り消す</button></div>`;
+  }
+  if(p.hasCalibPdf && !p._calibRemoved){
+    return `<div class="pdf-current"><span>${fileIcon(p.calibPdfName)} ${escapeHtml(p.calibPdfName || '構成データ')}</span><button type="button" id="removeCalibBtn">削除する</button></div>`;
+  }
+  return '';
+}
+
+function manualCurrentHtml(){
+  const p = editingPart;
+  if(p._manualPending){
+    return `<div class="pdf-current"><span>${fileIcon(p._manualPending.name)} ${escapeHtml(p._manualPending.name)}（新規）</span><button type="button" id="removeManualBtn">取り消す</button></div>`;
+  }
+  if(p.hasManualPdf && !p._manualRemoved){
+    return `<div class="pdf-current"><span>${fileIcon(p.manualPdfName)} ${escapeHtml(p.manualPdfName || '手順書')}</span><button type="button" id="removeManualBtn">削除する</button></div>`;
+  }
+  return '';
+}
+
+function syncFieldsFromDom(){
+  const pn = document.getElementById('f-partNumber');
+  const nm = document.getElementById('f-name');
+  const pr = document.getElementById('f-price');
+  const pd = document.getElementById('f-product');
+  const nt = document.getElementById('f-notes');
+  if(pn) editingPart.partNumber = pn.value;
+  if(nm) editingPart.name = nm.value;
+  if(pr) editingPart.price = pr.value;
+  if(pd) editingPart.product = pd.value;
+  if(nt) editingPart.notes = nt.value;
+  if(document.getElementById('compRows')) editingPart.composition = readCompRows();
+}
+
+function compRowHtml(c, i){
+  return `
+    <div class="comp-row" data-idx="${i}">
+      <input type="text" class="comp-name" autocomplete="off" value="${escapeHtml(c.name)}" placeholder="部品名">
+      <input type="text" class="comp-qty" autocomplete="off" value="${escapeHtml(c.qty)}" placeholder="数量（例: 2個）">
+      <button type="button" class="rm" data-idx="${i}">×</button>
+    </div>
+  `;
+}
+
+function readCompRows(){
+  return Array.from(document.querySelectorAll('#compRows .comp-row')).map(row => ({
+    name: row.querySelector('.comp-name').value.trim(),
+    qty: row.querySelector('.comp-qty').value.trim()
+  }));
+}
+
+// delegate remove-row clicks (rows are re-rendered each time so bind after render)
+document.addEventListener('click', (e) => {
+  if(e.target.classList.contains('rm') && mode === 'form'){
+    syncFieldsFromDom();
+    const rows = editingPart.composition;
+    const idx = Number(e.target.dataset.idx);
+    rows.splice(idx, 1);
+    editingPart.composition = rows.length ? rows : [{name:'', qty:''}];
+    renderForm();
+  }
+});
+
+function compressImage(file, maxWidth, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onSaveForm(){
+  const status = document.getElementById('formStatus');
+  const partNumber = document.getElementById('f-partNumber').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const priceRaw = document.getElementById('f-price').value.trim();
+  const product = document.getElementById('f-product').value.trim();
+  const notes = document.getElementById('f-notes').value.trim();
+  const composition = editingPart.composition || [];
+
+  if(!partNumber || !name){
+    status.textContent = '品番と品名は必須です。';
+    status.className = 'status-msg err';
+    return;
+  }
+  const price = priceRaw === '' ? null : Number(priceRaw);
+  if(priceRaw !== '' && isNaN(price)){
+    status.textContent = '単価は数値で入力してください。';
+    status.className = 'status-msg err';
+    return;
+  }
+
+  let hasPdf = editingPart.hasPdf && !editingPart._pdfRemoved;
+  let pdfName = hasPdf ? editingPart.pdfName : '';
+  if(editingPart._pdfPending){ hasPdf = true; pdfName = editingPart._pdfPending.name; }
+
+  let hasCalibPdf = editingPart.hasCalibPdf && !editingPart._calibRemoved;
+  let calibPdfName = hasCalibPdf ? editingPart.calibPdfName : '';
+  if(editingPart._calibPending){ hasCalibPdf = true; calibPdfName = editingPart._calibPending.name; }
+
+  let hasManualPdf = editingPart.hasManualPdf && !editingPart._manualRemoved;
+  let manualPdfName = hasManualPdf ? editingPart.manualPdfName : '';
+  if(editingPart._manualPending){ hasManualPdf = true; manualPdfName = editingPart._manualPending.name; }
+
+  // 写真: 既存(残すもの) + 新規追加分のIDリストを組み立てる。旧形式の単一写真は新形式へ移行する。
+  const keptExistingIds = (editingPart._existingPhotos || [])
+    .filter(ph => !ph.legacy && !editingPart._removedPhotoIds.includes(ph.id))
+    .map(ph => ph.id);
+  const newPhotoIds = (editingPart._newPhotos || []).map(ph => ph.id);
+  let finalPhotoIds = keptExistingIds.concat(newPhotoIds);
+  let legacyMigrationId = null;
+  const legacyPhoto = (editingPart._existingPhotos || []).find(ph => ph.legacy);
+  if(legacyPhoto && !editingPart._legacyPhotoRemoved){
+    legacyMigrationId = uid();
+    finalPhotoIds = [legacyMigrationId].concat(finalPhotoIds);
+  }
+
+  const record = {
+    id: editingPart.id,
+    partNumber, name, price, product,
+    composition, notes,
+    photoIds: finalPhotoIds,
+    hasPdf, pdfName,
+    hasCalibPdf, calibPdfName,
+    hasManualPdf, manualPdfName
+  };
+
+  status.textContent = '保存しています…';
+  status.className = 'status-msg';
+  try{
+    if(editingPart._pdfPending){
+      status.textContent = 'ファイルを保存しています…';
+      await saveChunkedFile('part-pdf', record.id, editingPart._pdfPending.name, editingPart._pdfPending.data);
+    }else if(editingPart._pdfRemoved){
+      await deleteChunkedFile('part-pdf', record.id);
+    }
+    if(editingPart._calibPending){
+      status.textContent = 'ファイルを保存しています…';
+      await saveChunkedFile('part-calib', record.id, editingPart._calibPending.name, editingPart._calibPending.data);
+    }else if(editingPart._calibRemoved){
+      await deleteChunkedFile('part-calib', record.id);
+    }
+    if(editingPart._manualPending){
+      status.textContent = 'ファイルを保存しています…';
+      await saveChunkedFile('part-manual', record.id, editingPart._manualPending.name, editingPart._manualPending.data);
+    }else if(editingPart._manualRemoved){
+      await deleteChunkedFile('part-manual', record.id);
+    }
+    if(legacyMigrationId){
+      await appStorage.set('part-photo:' + legacyMigrationId, legacyPhoto.data, STORAGE_SHARED);
+    }
+    for(const ph of (editingPart._newPhotos || [])){
+      await appStorage.set('part-photo:' + ph.id, ph.data, STORAGE_SHARED);
+    }
+    for(const rid of (editingPart._removedPhotoIds || [])){
+      try{ await appStorage.delete('part-photo:' + rid, STORAGE_SHARED); }catch(e){}
+    }
+    await savePart(record);
+    selectedId = record.id;
+    mode = 'detail';
+    applyFilter();
+    selectPart(record.id);
+  }catch(e){
+    status.textContent = `保存に失敗しました：${(e && e.name) || 'Error'} - ${(e && e.message) || e}`;
+    status.className = 'status-msg err';
+  }
+}
+
+
+/* =====================================================================
+   デモ用サンプルデータ（架空メーカー AURORA / 歯科機器）
+   本番用に配るときは、この区切りから resetDemoData までを削除すれば
+   空の状態で始まる。
+   ===================================================================== */
+function demoSvg(inner){
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">'
+    + '<rect width="480" height="360" fill="#E1DCCE"/>'
+    + '<g fill="none" stroke="#46586B" stroke-width="3" stroke-linejoin="round">' + inner + '</g></svg>';
+  return 'data:image/svg+xml;base64,' + btoa(svg);
+}
+
+const DEMO_PHOTOS = {
+  'P-1001': '<rect x="90" y="110" width="300" height="140"/><path d="M90 110l300 140M390 110L90 250"/><rect x="120" y="140" width="240" height="80"/>',
+  'P-1007': '<ellipse cx="240" cy="140" rx="120" ry="32"/><path d="M120 140l40 130h160l40-130"/><circle cx="240" cy="252" r="12"/>',
+  'P-1013': '<circle cx="240" cy="180" r="110"/><circle cx="240" cy="180" r="82"/>',
+  'P-1014': '<rect x="120" y="148" width="62" height="64"/><rect x="182" y="164" width="178" height="32"/><path d="M202 164v32M222 164v32M242 164v32M262 164v32M282 164v32M302 164v32M322 164v32M342 164v32"/>',
+  'P-1015': '<path d="M168 128h144l26 102H142z"/><rect x="220" y="92" width="40" height="36"/><path d="M142 230h196"/>',
+  'O-98-P': '<path d="M148 132c0-30 42-46 92-46s92 16 92 46c0 42-16 62-21 108-3 29-31 31-35 2-4-29-8-42-17-42s-13 13-17 42c-4 29-32 27-35-2-5-46-21-66-21-108z"/><path d="M198 118h84"/><path d="M330 92l10-18 10 18 18 10-18 10-10 18-10-18-18-10z"/>',
+  'M-A8-G': '<path d="M196 98c30-15 62-15 92 0 11 6 13 19 9 42-9 46-19 94-40 123-6 9-15 9-21 0-21-29-31-77-40-123-4-23-2-36 9-42z"/><path d="M198 128h88"/><path d="M320 96l10-18 10 18 18 10-18 10-10 18-10-18-18-10z"/>'
+};
+
+const DEMO_DC = 'チェアユニット DC-500';
+const DEMO_MT = 'マイクロモーター MT-30';
+const DEMO_KY = '共通部品';
+const DEMO_TK = '特注品';
+
+const DEMO_ROWS = [
+  { pn:'M-3001', name:'歯科用チェアユニット DC-500', price:1850000, product:DEMO_DC,
+    notes:'完成品。据付時に水平出しが必要。給排水はスピットン側で接続する。',
+    comp:[{name:'A-2001 昇降シートユニット',qty:'1台'},{name:'A-2002 インスツルメントホルダー',qty:'1台'},{name:'A-2003 スピットンユニット',qty:'1台'},{name:'A-2004 フットコントローラー',qty:'1台'}] },
+  { pn:'M-3002', name:'技工用マイクロモーター MT-30', price:240000, product:DEMO_MT,
+    notes:'技工室向け。フットコントローラーは DC-500 と共通。',
+    comp:[{name:'A-2005 ハンドピース接続部',qty:'1式'},{name:'A-2004 フットコントローラー',qty:'1台'}] },
+
+  { pn:'A-2001', name:'昇降シートユニット', price:320000, product:DEMO_DC,
+    notes:'溶接後に脱脂・粉体塗装。アクチュエータは左右同時駆動。',
+    comp:[{name:'P-1001 座面フレーム 鋼板溶接',qty:'1個'},{name:'P-1002 電動リニアアクチュエータ 24V',qty:'2本'},{name:'P-1003 樹脂カバー 昇降部',qty:'1個'},{name:'P-1004 ヘッドレスト可動アーム',qty:'1個'},{name:'P-1014 六角穴付ボルト M4×12',qty:'16本'}] },
+  { pn:'A-2002', name:'インスツルメントホルダー', price:86000, product:DEMO_DC,
+    comp:[{name:'P-1005 ホルダーアーム アルミ削り出し',qty:'2本'},{name:'P-1006 チューブガイド樹脂',qty:'4個'},{name:'P-1014 六角穴付ボルト M4×12',qty:'6本'}] },
+  { pn:'A-2003', name:'スピットンユニット', price:74000, product:DEMO_DC,
+    notes:'陶器ボウルは欠けやすいため、組付けは最終工程で行う。',
+    comp:[{name:'P-1007 陶器ボウル',qty:'1個'},{name:'P-1008 給水バルブ 12V',qty:'1個'},{name:'P-1009 排水トラップ ステンレス',qty:'1個'},{name:'P-1015 防振ゴム脚',qty:'4個'}] },
+  { pn:'A-2004', name:'フットコントローラー', price:38000, product:DEMO_KY,
+    notes:'DC-500 / MT-30 共通。防水のため O リングの座りを要確認。',
+    comp:[{name:'P-1010 フットペダル本体',qty:'1個'},{name:'P-1011 防水スイッチ基板',qty:'1枚'},{name:'P-1013 Oリング シリコン φ8',qty:'2個'}] },
+  { pn:'A-2005', name:'ハンドピース接続部', price:52000, product:DEMO_MT,
+    comp:[{name:'P-1012 クイックカプラ 4穴',qty:'1個'},{name:'P-1013 Oリング シリコン φ8',qty:'4個'},{name:'P-1014 六角穴付ボルト M4×12',qty:'4本'}] },
+
+  { pn:'P-1001', name:'座面フレーム 鋼板溶接', price:42000, product:DEMO_DC, notes:'鋼板 t3.2 溶接組立。歪み取り工程あり。' },
+  { pn:'P-1002', name:'電動リニアアクチュエータ 24V', price:28000, product:DEMO_DC, notes:'ストローク 200mm。2本1組で使用する。' },
+  { pn:'P-1003', name:'樹脂カバー 昇降部', price:5200, product:DEMO_DC },
+  { pn:'P-1004', name:'ヘッドレスト可動アーム', price:8600, product:DEMO_DC },
+  { pn:'P-1005', name:'ホルダーアーム アルミ削り出し', price:11400, product:DEMO_DC, notes:'A5052 削り出し。アルマイト処理。' },
+  { pn:'P-1006', name:'チューブガイド樹脂', price:760, product:DEMO_DC },
+  { pn:'P-1007', name:'陶器ボウル', price:9800, product:DEMO_DC, notes:'外注品。納期およそ4週。' },
+  { pn:'P-1008', name:'給水バルブ 12V', price:3200, product:DEMO_DC },
+  { pn:'P-1009', name:'排水トラップ ステンレス', price:2400, product:DEMO_DC },
+  { pn:'P-1010', name:'フットペダル本体', price:6300, product:DEMO_KY },
+  { pn:'P-1011', name:'防水スイッチ基板', price:8900, product:DEMO_KY },
+  { pn:'P-1012', name:'クイックカプラ 4穴', price:14200, product:DEMO_MT },
+  { pn:'P-1013', name:'Oリング シリコン φ8', price:60, product:DEMO_KY, notes:'消耗品。組付け時にシリコングリスを塗布する。' },
+  { pn:'P-1014', name:'六角穴付ボルト M4×12', price:30, product:DEMO_KY, notes:'標準品。まとめ発注。' },
+  { pn:'P-1015', name:'防振ゴム脚', price:420, product:DEMO_KY },
+
+  { pn:'O-98-P', name:'奥歯（プラチナ）', price:148000, product:DEMO_TK,
+    notes:'創業者の奥歯。社名の由来。1975年製。実物は応接室に飾ってあるため、持ち出しの際は総務へ一報。' },
+  { pn:'M-A8-G', name:'前歯（ゴールド）', price:96000, product:DEMO_TK,
+    notes:'創業者の前歯。会社案内の撮影のたびに反射するため、広報より照明の調整依頼が出ている。' }
+];
+
+const DEMO_VERSION = 'okuba-2';  // サンプルを変更したらここを更新する
+
+async function seedDemoData(){
+  let existing = null, ver = null;
+  try{ existing = await appStorage.get('parts:index', STORAGE_SHARED); }catch(e){}
+  try{ ver = await appStorage.get('demo:version', STORAGE_SHARED); }catch(e){}
+  const sameVersion = ver && ver.value === DEMO_VERSION;
+  if(existing && existing.value && sameVersion) return;
+  // 旧いサンプルが残っている場合は入れ替える
+  if(existing && existing.value && !sameVersion) await appStorage.clearAll();
+
+  const index = [];
+  for(const r of DEMO_ROWS){
+    const id = uid();
+    const photoIds = [];
+    if(DEMO_PHOTOS[r.pn]){
+      const pid = uid();
+      await appStorage.set('part-photo:' + pid, demoSvg(DEMO_PHOTOS[r.pn]), STORAGE_SHARED);
+      photoIds.push(pid);
+    }
+    const rec = {
+      id: id, partNumber: r.pn, name: r.name, price: r.price, product: r.product,
+      composition: r.comp || [], notes: r.notes || '', photoIds: photoIds,
+      hasPdf:false, pdfName:'', hasCalibPdf:false, calibPdfName:'', hasManualPdf:false, manualPdfName:''
+    };
+    await appStorage.set('part:' + id, JSON.stringify(rec), STORAGE_SHARED);
+    index.push({ id: id, partNumber: rec.partNumber, name: rec.name, price: rec.price, product: rec.product, hasPhoto: photoIds.length > 0, hasManualPdf: false });
+  }
+  index.sort(function(a,b){ return a.partNumber.localeCompare(b.partNumber, 'ja'); });
+  await appStorage.set('parts:index', JSON.stringify(index), STORAGE_SHARED);
+
+  const map = {};
+  DEMO_ROWS.forEach(function(r){ map[normalizeCode(r.pn)] = r.product; });
+  await appStorage.set('product-map', JSON.stringify(map), STORAGE_SHARED);
+  await appStorage.set('demo:version', DEMO_VERSION, STORAGE_SHARED);
+}
+
+async function resetDemoData(){
+  let ok = true;
+  try{ ok = window.confirm('登録内容をすべて消して、デモデータの状態に戻します。よろしいですか？'); }
+  catch(e){ ok = true; }   // 確認ダイアログが使えない環境ではそのまま実行する
+  if(ok === false) return;
+  await appStorage.clearAll();
+  await seedDemoData();
+  await Promise.all([loadIndex(), loadProductMap()]);
+  selectedId = null;
+  confirmDeleteId = null;
+  mode = 'empty';
+  appEl.classList.remove('detail-active');
+  renderEmpty();
+}
+
+document.getElementById('newBtn').addEventListener('click', () => openForm(null));
+document.getElementById('adminBtn').addEventListener('click', openAdminModal);
+document.getElementById('manualBrowseBtn').addEventListener('click', openManualBrowseModal);
+document.getElementById('aiBtn').addEventListener('click', openAiModal);
+document.getElementById('resetDemoBtn').addEventListener('click', resetDemoData);
+searchAllEl.addEventListener('input', applyFilter);
+
+(async function init(){
+  contentEl.innerHTML = `<div class="placeholder"><div class="mark">···</div><div>データを読み込んでいます</div></div>`;
+  try{
+    await seedDemoData();
+  }catch(e){
+    console.error('サンプルデータの投入に失敗しました', e);
+  }
+  await Promise.all([loadIndex(), loadProductMap()]);
+  renderEmpty();
+  // 保存が効かない環境（プレビュー等）では、その旨を上部に出す
+  try{
+    if(!(await appStorage.isPersistent())){
+      const note = document.querySelector('.shared-note');
+      if(note) note.insertAdjacentHTML('beforeend',
+        ' <strong style="color:var(--danger);">この環境では保存が使えないため、画面を閉じると入力内容は消えます。</strong>');
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
