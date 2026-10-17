@@ -150,6 +150,41 @@
     padding: 8px 28px;
     border-bottom: 1px solid var(--line-soft);
   }
+  /* ---- デモ版の制限（お試し制限の1行と、上限に達したときの案内） ---- */
+  .demo-limit-line{
+    display: inline-block;
+    margin-top: 4px;
+    color: var(--copper-deep);
+    font-weight: 700;
+  }
+  .modal-box.demo-stop{ max-width: 380px; }
+  .demo-stop .modal-body{
+    padding: 26px 24px 22px;
+    text-align: center;
+  }
+  .demo-stop-icon{
+    width: 84px;
+    height: 84px;
+    display: block;
+    margin: 0 auto 10px;
+    fill: none;
+    stroke: var(--steel);
+    stroke-width: 7;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .demo-stop-title{
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .demo-stop-text{
+    font-size: 14px;
+    line-height: 1.8;
+    margin: 0 0 18px;
+  }
+  .demo-stop-text strong{ color: var(--copper-deep); }
   main{
     flex: 1;
     display: grid;
@@ -774,7 +809,7 @@
       <button class="btn-primary" id="newBtn">＋ 新規登録</button>
     </div>
   </header>
-  <div class="shared-note">※ <strong>デモ版</strong>：「オクバ工業株式会社」および掲載中の品番・製品はすべて架空のものです。登録したデータはお使いのブラウザ内にだけ保存され、外部に送信されず、他の端末とも共有されません。<button class="inline-link-btn" id="resetDemoBtn">デモデータに戻す</button></div>
+  <div class="shared-note">※ <strong>デモ版</strong>：「オクバ工業株式会社」および掲載中の品番・製品はすべて架空のものです。入力したデータは外部に送信されず、他の端末とも共有されません。<button class="inline-link-btn" id="resetDemoBtn">デモデータに戻す</button><br><span class="demo-limit-line">お試し制限：新規登録は3件まで。登録・編集した内容は保存されず、ページを開き直すとデモデータ（24件）に戻ります。</span></div>
   <main>
     <div class="sidebar">
       <div class="search-hero">
@@ -807,6 +842,15 @@ let _dbPromise = null;
 let _idbOk = null;          // null = 未判定 / true = IndexedDB / false = メモリのみ
 const _mem = new Map();     // IndexedDB が使えない環境（プレビュー等）の退避先
 
+/* ---- デモ版の制限 ----
+   DEMO_NO_SAVE   : true のあいだはブラウザに保存せず、メモリだけで動かす。
+                    ページを開き直すと、毎回デモデータ（最初の24件）から始まる。
+   DEMO_NEW_LIMIT : 新規登録できる件数（CSVインポートの新規分も含む）。
+   本番版にするときは DEMO_NO_SAVE = false、DEMO_NEW_LIMIT = Infinity にする。 */
+const DEMO_NO_SAVE = true;
+const DEMO_NEW_LIMIT = 3;
+let demoNewCount = 0;       // このページを開いてから新規登録した件数
+
 function openDb(){
   if(_dbPromise) return _dbPromise;
   _dbPromise = new Promise((resolve, reject) => {
@@ -825,6 +869,7 @@ function openDb(){
 }
 
 async function idbUsable(){
+  if(DEMO_NO_SAVE){ _idbOk = false; return false; }   // デモ版：保存しない
   if(_idbOk !== null) return _idbOk;
   try{ await openDb(); _idbOk = true; }
   catch(e){ _idbOk = false; }
@@ -1198,7 +1243,7 @@ async function runCsvImport(){
   const byNumber = {};
   partsIndex.forEach(p => { byNumber[(p.partNumber || '').trim()] = p.id; });
 
-  let added = 0, updated = 0, skipped = 0;
+  let added = 0, updated = 0, skipped = 0, limited = 0;
   for(let i = 0; i < csvState.rows.length; i++){
     const row = csvState.rows[i];
     const partNumber = getMappedValue(row, 'partNumber');
@@ -1220,6 +1265,8 @@ async function runCsvImport(){
         upsertIndexEntry(existing);
         updated++;
       }else{ skipped++; }
+    }else if(demoLimitReached()){
+      limited++;   // デモ版：上限を超えた新規分は登録しない
     }else{
       const rec = {
         id: uid(), partNumber, name,
@@ -1230,14 +1277,17 @@ async function runCsvImport(){
       upsertIndexEntry(rec);
       byNumber[partNumber] = rec.id;
       added++;
+      demoNewCount++;
     }
   }
   partsIndex.sort((a,b) => a.partNumber.localeCompare(b.partNumber, 'ja'));
   await saveIndex();
   applyFilter();
   importBtn.disabled = false;
-  status.textContent = `完了しました。新規登録 ${added} 件／更新 ${updated} 件／スキップ ${skipped} 件`;
+  status.textContent = `完了しました。新規登録 ${added} 件／更新 ${updated} 件／スキップ ${skipped} 件`
+    + (limited ? `／デモ版の上限で登録しなかった分 ${limited} 件` : '');
   status.className = 'status-msg';
+  if(limited) showDemoLimitModal();
 }
 
 function closeCsvModal(){
@@ -2160,6 +2210,12 @@ async function onSaveForm(){
     status.className = 'status-msg err';
     return;
   }
+  // デモ版：新規登録の上限（編集は何度でもOK）
+  const isNewPart = !partsIndex.some(p => p.id === editingPart.id);
+  if(isNewPart && demoLimitReached()){
+    showDemoLimitModal();
+    return;
+  }
 
   let hasPdf = editingPart.hasPdf && !editingPart._pdfRemoved;
   let pdfName = hasPdf ? editingPart.pdfName : '';
@@ -2227,6 +2283,7 @@ async function onSaveForm(){
       try{ await appStorage.delete('part-photo:' + rid, STORAGE_SHARED); }catch(e){}
     }
     await savePart(record);
+    if(isNewPart) demoNewCount++;
     selectedId = record.id;
     mode = 'detail';
     applyFilter();
@@ -2354,6 +2411,7 @@ async function resetDemoData(){
   await appStorage.clearAll();
   await seedDemoData();
   await Promise.all([loadIndex(), loadProductMap()]);
+  demoNewCount = 0;   // 最初の状態に戻ったので、新規登録の枠も戻す
   selectedId = null;
   confirmDeleteId = null;
   mode = 'empty';
@@ -2361,7 +2419,48 @@ async function resetDemoData(){
   renderEmpty();
 }
 
-document.getElementById('newBtn').addEventListener('click', () => openForm(null));
+/* ---- デモ版：新規登録の上限に達したときの案内 ---- */
+function demoLimitReached(){
+  return demoNewCount >= DEMO_NEW_LIMIT;
+}
+
+function closeDemoLimitModal(){
+  const overlay = document.getElementById('demoLimitOverlay');
+  if(overlay) overlay.remove();
+  document.removeEventListener('keydown', onDemoLimitKey);
+}
+
+function onDemoLimitKey(e){
+  if(e.key === 'Escape') closeDemoLimitModal();
+}
+
+function showDemoLimitModal(){
+  closeDemoLimitModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'demoLimitOverlay';
+  overlay.innerHTML = `
+    <div class="modal-box demo-stop" role="dialog" aria-modal="true" aria-labelledby="demoStopTitle">
+      <div class="modal-body">
+        <svg class="demo-stop-icon" viewBox="128 60 240 230" aria-hidden="true"><path d="M148 132c0-30 42-46 92-46s92 16 92 46c0 42-16 62-21 108-3 29-31 31-35 2-4-29-8-42-17-42s-13 13-17 42c-4 29-32 27-35-2-5-46-21-66-21-108z"/><path d="M198 118h84"/><path d="M330 92l10-18 10 18 18 10-18 10-10 18-10-18-18-10z"/></svg>
+        <div class="demo-stop-title" id="demoStopTitle">デモ版はここまで！</div>
+        <p class="demo-stop-text">新規登録は${DEMO_NEW_LIMIT}件で<strong>歯止め</strong>がかかります。<br>本番版なら、何件でも登録できます。</p>
+        <button type="button" class="btn-primary" id="demoStopCloseBtn">歯がゆいけど閉じる</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeDemoLimitModal(); });
+  document.body.appendChild(overlay);
+  const closeBtn = overlay.querySelector('#demoStopCloseBtn');
+  closeBtn.addEventListener('click', closeDemoLimitModal);
+  document.addEventListener('keydown', onDemoLimitKey);
+  closeBtn.focus();
+}
+
+document.getElementById('newBtn').addEventListener('click', () => {
+  if(demoLimitReached()){ showDemoLimitModal(); return; }
+  openForm(null);
+});
 document.getElementById('adminBtn').addEventListener('click', openAdminModal);
 document.getElementById('manualBrowseBtn').addEventListener('click', openManualBrowseModal);
 document.getElementById('resetDemoBtn').addEventListener('click', resetDemoData);
@@ -2377,8 +2476,9 @@ searchAllEl.addEventListener('input', applyFilter);
   await Promise.all([loadIndex(), loadProductMap()]);
   renderEmpty();
   // 保存が効かない環境（プレビュー等）では、その旨を上部に出す
+  // （デモ版は「保存しない」ことを注意書きに書いてあるので出さない）
   try{
-    if(!(await appStorage.isPersistent())){
+    if(!DEMO_NO_SAVE && !(await appStorage.isPersistent())){
       const note = document.querySelector('.shared-note');
       if(note) note.insertAdjacentHTML('beforeend',
         ' <strong style="color:var(--danger);">この環境では保存が使えないため、画面を閉じると入力内容は消えます。</strong>');
